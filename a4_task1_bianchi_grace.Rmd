@@ -1,0 +1,55 @@
+---
+title: "Task 1"
+author: "Grace Bianchi"
+date: "2023-03-16"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=TRUE, warning = FALSE, message = FALSE, echo = TRUE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(here)
+
+## read in the data
+data <- read_csv(here("data/Oil_Spill_Incident_Tracking_[ds394].csv"))
+
+ca_counties_shp <- 
+```
+
+## Overview
+
+Summary of code and findings and data (n=3247)
+The data are collected by OSPR Field Response Team members for Marine oil spills and by OSPR Inland Pollution Coordinators and Wardens for Inland incidents.
+
+
+**Data source:** Oil Spill Incident Tracking data, from the California Department of Fish and Wildlife 
+
+
+[Metadata source](https://www.arcgis.com/sharing/rest/content/items/7464e3d6f4924b50ad06e5a553d71086/info/metadata/metadata.xml?format=default&output=html).
+
+## Interactive Exploratory Map
+
+This is an interactive map showing the location of oil spill events in California.
+
+```{r}
+
+
+
+```
+
+
+# Choropleth map
+
+Make an exploratory interactive map in tmap showing the location of oil spill events included in the data.
+Make a finalized static choropleth map in ggplot in which the fill color for each county depends on the count of inland oil spill events by county for the 2008 oil spill data
+```{r}
+ggplot()
+
+```
+
+## Summary
+
+
+
