@@ -1,0 +1,88 @@
+---
+title: "Time Series Summary"
+author: "Grace Bianchi"
+date: "2023-03-19"
+output: 
+  html_document:
+    code_folding: hide
+    theme: cosmo
+  
+---
+
+```{r setup, include=TRUE, message=FALSE, warning=TRUE, echo=TRUE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=TRUE)
+
+library(here)
+library(tidyverse)
+library(patchwork)
+library(tsibble)
+library(feasts)
+
+```
+
+##  tabs {.tabset}
+
+### Summary
+
+2 images
+
+Sumary of data set 
+
+This code explores adult fish passage records from 2001 to 2010 at the Willamette Falls fish ladder on the Willamette River (Oregon). Data were shared by and accessed from [Columbia River DART](https://www.cbr.washington.edu/dart/query/adult_graph_text) (Data Access in Real Time).
+
+
+```{r}
+fish_data <- read_csv(here("data/willamette_fish_passage.csv")) %>% 
+  replace(is.na(.), 0) %>% # replace NA values with zero
+   mutate(date = mdy(Date)) %>% 
+  select("date", "Coho", "Jack Coho", "Steelhead", "TempC") %>% 
+  as_tsibble(key = NULL, index = date)
+
+```
+
+
+### Original Series
+
+```{r}
+fish_data_long <- fish_data %>% 
+  pivot_longer(cols=2:4,
+               names_to = "species",
+               values_to = "count") %>% 
+  mutate(year=year(date))
+   
+  
+ggplot(data = fish_data_long, aes(x = date, y=count)) +
+  geom_line(aes(x = date, y = count)) +  
+  scale_x_continuous(breaks = seq(2001, 2011, 1), labels = seq(2001,2011,1)) +
+  facet_wrap(~species,
+             nrow=3) +
+  labs(y = "Number of observations") +
+  theme_minimal()
+
+```
+
+**Figure 1.** Time series of coho, jack coho, and steelhead salmon. 
+
+- 2 - 3 bullet points summarizing major patterns / notable trends in the salmon passage time series data
+- 
+
+
+### Seasonplots 
+
+```{r}
+
+```
+
+A finalized seasonplot for each species (coho, jack coho, steelhead) in its own panel. You can either facet_wrap/facet_grid, or use patchwork or cowplot, to make the figure. Add a caption.
+Add 2 - 3 bullet points summarizing the major trends you see in the seasonplots.
+
+
+### Annual Counts
+
+```{r}
+
+```
+
+
+A finalized figure of annual totals for fish passage, for each of the 3 species (coho, jack coho, steelhead). You decide if this is in a single panel, or multiple panels. Add a figure caption. 
+Add 2 - 3 bullet points summarizing major trends you see in the annual totals by species from 2000 - 2010.
