@@ -1,0 +1,138 @@
+---
+title: "Text Wrangling"
+author: "Grace Bianchi"
+date: "2023-03-20"
+output:
+   html_document:
+     code_folding: hide
+---
+
+```{r setup, include=TRUE, message = FALSE, warning = FALSE, echo = TRUE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(htmltools)
+library(here)
+library(readtext)
+
+# library(tidytext)
+library(textdata)
+library(cowplot)
+library(ggwordcloud)
+library(purrr)
+library(plotly)
+
+```
+
+This code wrangles and visualizes two of Ron Desantis speech transcripts, one from his State of the State address and his second inaugural address in 2023. First, words from both speeches are put in tidy format, combined, and then analyzed for most used words. Results are displayed in a word cloud. Second, a sentiment analysis using NRC lexicons was used to visualize the proportion of negative and positive words through the speeches.
+
+**Sources**
+
+Saif M. Mohammad and Peter Turney. (2013), ``Crowdsourcing a Word-Emotion Association Lexicon.'' Computational Intelligence, 29(3): 436-465. url = {https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1467-8640.2012.00460.x}
+
+State, C. (2023, January 3). Transcript: Florida Gov. Ron DeSantis’ second inaugural address. City & State FL; City & State Florida. https://www.cityandstatefl.com/policy/2023/01/transcript-florida-gov-ron-desantis-second-inaugural-address/381406/
+
+Transcript: Read the full text of Ron DeSantis’ State of the State address. (2023, March 7). WUSF Public Media; WUSF. https://wusfnews.wusf.usf.edu/politics-issues/2023-03-07/transcript-read-the-full-text-of-ron-desantis-state-of-the-state-address
+
+
+```{r}
+desantis_speech<-readtext(here("data/desantis_inaugural.txt")) %>% 
+  as.data.frame() %>% # put into data frame
+  unnest_tokens(word, text, token = 'words') %>% # function to put one word per row
+  select(word) # select column containing words
+
+speech_clean<-desantis_speech %>% 
+    anti_join(stop_words,by="word") # remove stop words
+```
+
+```{r}
+desantis_address<-readtext(here("data/desantis_2022_state.txt")) %>% 
+  as.data.frame() %>% 
+  unnest_tokens(word, text, token = 'words') %>% # function to put one word per row
+  select(word) %>% 
+  filter(!grepl("[[:digit:]]", word))
+
+speech2_clean<-desantis_address %>% 
+    anti_join(stop_words,by="word") # remove stop words
+```
+
+```{r}
+speech_count <- speech_clean %>% 
+  count(word) %>% 
+  filter(!grepl("[[:digit:]]", word)) # remove any numeric values
+
+speech2_count <- speech2_clean %>% 
+  count(word) # find number of records for each word
+
+# joining datasets
+desantis <- speech2_count %>% 
+  full_join(speech_count, by= "word") %>%  # combine words from both speeches
+  mutate_all( ~replace_na(.,0)) %>% # replace NAs with zero
+  mutate(n = n.y + n.x) %>% # create new column with sum of each word
+  select(word, n)
+
+top_50 <- desantis %>% 
+  slice_max(n = 40, order_by = n)
+
+top_50_noFL <- desantis %>% filter(word != "florida") %>% 
+  slice_max(n = 40, order_by = n)
+
+```
+
+### Wordcloud Visualizaiton
+
+```{r}
+speech_plot <- ggplot(data = top_50, aes(label = word)) +
+  geom_text_wordcloud(aes(color=n,size=n),shape="square")+
+  scale_size_area(max_size = 5)+
+  scale_color_gradientn(colors = c("palevioletred","purple","red4"))+
+  theme_minimal()
+
+speech_no_fl_plot <- ggplot(data = top_50_noFL, aes(label = word)) +
+  geom_text_wordcloud(aes(color=n,size=n),shape="square")+
+  scale_size_area(max_size = 5)+
+  scale_color_gradientn(colors = c("palevioletred","purple","red4"))+
+  theme_minimal()
+
+### combine into one plot
+plot_grid(speech_plot, speech_no_fl_plot,
+          align = 'v',
+          ncol = 1,
+          labels = c('Analysis including Florida:', 'Without Florida:'))
+
+```
+
+**Figure 1.**The first analysis shows a large Florida is the most common word. This makes sense as he is the governor of Florida. Thus, a second wordcloud was created to see the frequency of words not including Florida. There seems to be a theme within the most frequent words such as "law", "freedom", "enforcement" and "rights"; parents", "families", "school." One word that seemed to be an "outlier" in the context of these speeches is the word "alien".
+
+
+### Sentiment analysis
+
+Next, the words are analyzed using NRC lexicons to calculate the proportions of negative and positive words. 
+
+
+```{r}
+nrc_lex <-get_sentiments(lexicon = "nrc")
+
+speech_nrc <- desantis %>% 
+  inner_join(nrc_lex, by ="word")
+
+### count how many words for each sentiment
+speech_nrc_counts <- speech_nrc %>% 
+  count(sentiment) %>% 
+  mutate(pct_total = (n/sum(n))*100, # calculate percentage
+         pct_total = round(pct_total, 1),
+         sentiment = factor(sentiment)) 
+
+order_words <- speech_nrc_counts[order(speech_nrc_counts$pct_total),]
+
+```
+
+```{r}
+#Visualize the emotions from NRC sentiments
+plot_ly(order_words,  y=~pct_total, x=~sentiment, type="bar", color=~sentiment) %>%
+  layout(xaxis=list(categoryorder='total descending'), showlegend=FALSE, yaxis=list(title = "Percent of words used"),
+         xaxis=list(title = " "))
+  
+```
+
+**Figure 2.** Sentiment analysis using NRC lexicon for two of Desantis' speeches. The x axis represents each of the 10 emotions included in this lexicon and y-axis indicates the percent of words associated with the respective emotion.
